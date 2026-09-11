@@ -1,0 +1,18 @@
+services:
+  - type: web
+    name: tekoulo-api
+    env: node
+    plan: starter
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: tekoulo-db
+          property: connectionString
+      - key: JWT_SECRET
+        generateValue: true
+
+databases:
+  - name: tekoulo-db
+    plan: starter
