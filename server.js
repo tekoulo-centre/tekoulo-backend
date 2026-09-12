@@ -1,10 +1,12 @@
-// Tekoulo Centre — Backend API
-// Point d'entrée principal
-require('dotenv').config();
+// require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
+const fs = require('fs');
+const path = require('path');
+const pool = require('./db/pool');
+const bcrypt = require('bcrypt');
 const app = express();
 
 app.use(helmet());
@@ -37,5 +39,27 @@ app.use('/api/utilisateurs', limiteurGeneral, authMiddleware, utilisateursRoutes
 
 app.get('/api/health', (req, res) => res.json({ status: 'ok', time: new Date().toISOString() }));
 
+// ROUTE TEMPORAIRE — à supprimer après utilisation
+app.get('/api/installation-unique-tekoulo', async (req, res) => {
+  if (req.query.cle !== process.env.JWT_SECRET) {
+    return res.status(403).json({ error: 'Non autorisé' });
+  }
+  try {
+    const sql = fs.readFileSync(path.join(__dirname, 'db', 'schema.sql'), 'utf8');
+    await pool.query(sql);
+    const hash = await bcrypt.hash(req.query.motdepasse, 10);
+    await pool.query(
+      `INSERT INTO utilisateurs (nom_utilisateur, mot_de_passe_hash, role)
+       VALUES ($1,$2,'direction')
+       ON CONFLICT (nom_utilisateur) DO UPDATE SET mot_de_passe_hash=$2`,
+      [req.query.utilisateur, hash]
+    );
+    res.json({ ok: true, message: 'Tables créées et compte direction prêt.' });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: e.message });
+  }
+});
+
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`Tekoulo API démarrée sur le port ${PORT}`));
+app.listen(PORT, () => console.log(`Tekoulo API démarrée sur le port ${PORT}`)); 
