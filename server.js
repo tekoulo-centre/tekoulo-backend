@@ -3,15 +3,13 @@ const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
-const pool = require('./db/pool');
-const bcrypt = require('bcrypt');
 const app = express();
 
 app.use(helmet());
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 
-const limiteurLogin = rateLimit({ windowMs: 15 * 60 * 1000, max: 10, message: { error: 'Trop de tentatives de connexion. Réessayez dans 15 minutes.' } });
+const limiteurLogin = rateLimit({ windowMs: 15 * 60 * 1000, max: 10, message: { error: 'Trop de tentatives de connexion. Reessayez dans 15 minutes.' } });
 const limiteurGeneral = rateLimit({ windowMs: 60 * 1000, max: 120 });
 
 const authRoutes = require('./routes/auth');
@@ -32,8 +30,6 @@ app.use('/api/collections', limiteurGeneral, authMiddleware, collectionsRoutes);
 app.use('/api/utilisateurs', limiteurGeneral, authMiddleware, utilisateursRoutes);
 
 app.get('/api/health', (req, res) => res.json({ status: 'ok', time: new Date().toISOString() }));
-
-app.get('/api/changer-mdp-unique-tekoulo', async (req, res) => { if (req.query.cle !== process.env.JWT_SECRET) { return res.status(403).json({ error: 'Non autorisé' }); } try { const hash = await bcrypt.hash(req.query.nouveaumdp, 10); await pool.query('UPDATE utilisateurs SET mot_de_passe_hash=$1 WHERE nom_utilisateur=$2', [hash, req.query.utilisateur]); res.json({ ok: true, message: 'Mot de passe mis a jour.' }); } catch (e) { console.error(e); res.status(500).json({ error: e.message }); } });
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`Tekoulo API demarree sur le port ${PORT}`));
