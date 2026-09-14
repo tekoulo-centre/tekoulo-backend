@@ -1,7 +1,32 @@
 const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcrypt');
+const fs = require('fs');
+const path = require('path');
 const pool = require('../db/pool');
+
+// POST /api/setup/initialiser-base — exécute les fichiers .sql du dossier db/ pour créer les tables.
+router.post('/initialiser-base', async (req, res) => {
+  const { secret } = req.body;
+  if (!secret || secret !== process.env.SETUP_SECRET) {
+    return res.status(403).json({ error: 'Secret de démarrage incorrect' });
+  }
+  const fichiers = ['schema.sql', 'schema_etape5.sql', 'schema_etape6.sql'];
+  const resultats = [];
+  try {
+    for (const nom of fichiers) {
+      const cheminFichier = path.join(__dirname, '..', 'db', nom);
+      if (!fs.existsSync(cheminFichier)) { resultats.push(`${nom} : introuvable, ignoré`); continue; }
+      const sql = fs.readFileSync(cheminFichier, 'utf8');
+      await pool.query(sql);
+      resultats.push(`${nom} : exécuté avec succès`);
+    }
+    res.json({ ok: true, resultats });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: 'Erreur SQL : ' + e.message, resultats });
+  }
+});
 
 router.post('/premier-compte', async (req, res) => {
   const { nom_utilisateur, mot_de_passe, secret } = req.body;
