@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tekoulo — Administration des comptes</title>
+<style>
+  body{font-family:system-ui,sans-serif;max-width:480px;margin:0 auto;padding:16px;background:#0b0b0f;color:#eee;}
+  h1{font-size:1.3rem;} h2{font-size:1.05rem;margin-top:28px;color:#ffd166;}
+  input,select,button{width:100%;padding:10px;margin:6px 0;border-radius:8px;border:1px solid #444;background:#1a1a22;color:#eee;font-size:1rem;box-sizing:border-box;}
+  button{background:#2d6a4f;border:none;font-weight:bold;cursor:pointer;}
+  button:active{background:#1b4332;}
+  .msg{padding:10px;border-radius:8px;margin:8px 0;font-size:0.9rem;}
+  .ok{background:#1b4332;} .err{background:#5c1a1a;}
+  .compte{padding:8px;border-bottom:1px solid #333;font-size:0.9rem;}
+  #zoneConnectee{display:none;}
+  small{color:#999;}
+</style>
+</head>
+<body>
+<h1>🏫 Tekoulo Centre — Administration</h1>
+
+<div id="zonePremierCompte">
+  <h2>Créer le tout premier compte (une seule fois)</h2>
+  <small>Utilise le "SETUP_SECRET" visible dans Render → ton service → Environment.</small>
+  <input id="pcUser" placeholder="Identifiant (ex: chef1)">
+  <input id="pcPass" type="password" placeholder="Mot de passe (6+ caractères)">
+  <input id="pcSecret" placeholder="SETUP_SECRET (depuis Render)">
+  <button onclick="creerPremierCompte()">Créer le compte Chef d'établissement</button>
+</div>
+
+<div id="zoneConnexion">
+  <h2>Connexion</h2>
+  <input id="loginUser" placeholder="Identifiant">
+  <input id="loginPass" type="password" placeholder="Mot de passe">
+  <button onclick="connecter()">Se connecter</button>
+</div>
+
+<div id="zoneConnectee">
+  <h2>Créer un nouveau compte</h2>
+  <input id="nuUser" placeholder="Identifiant (ex: directeur1)">
+  <input id="nuPass" type="password" placeholder="Mot de passe (6+ caractères)">
+  <select id="nuRole">
+    <option value="chef_etablissement">Chef d'établissement</option>
+    <option value="directeur_etudes">Directeur des études</option>
+    <option value="comptable">Comptable</option>
+    <option value="charge_orientation">Chargé à l'orientation</option>
+    <option value="enseignant">Enseignant</option>
+    <option value="secretaire">Secrétaire</option>
+    <option value="bibliothecaire">Bibliothécaire</option>
+    <option value="surveillant_general">Surveillant général</option>
+  </select>
+  <button onclick="creerCompte()">Créer ce compte</button>
+
+  <h2>Comptes existants</h2>
+  <div id="listeComptes"></div>
+</div>
+
+<div id="messages"></div>
+
+<script>
+let TOKEN = null;
+const API = window.location.origin;
+
+function msg(texte, estErreur){
+  const d = document.getElementById('messages');
+  d.innerHTML = `<div class="msg ${estErreur?'err':'ok'}">${texte}</div>`;
+}
+
+async function creerPremierCompte(){
+  const nom_utilisateur = document.getElementById('pcUser').value.trim();
+  const mot_de_passe = document.getElementById('pcPass').value;
+  const secret = document.getElementById('pcSecret').value.trim();
+  try{
+    const res = await fetch(API+'/api/setup/premier-compte', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({nom_utilisateur, mot_de_passe, secret})
+    });
+    const data = await res.json();
+    if(res.ok){
+      msg('Compte "'+data.nom_utilisateur+'" créé ! Connecte-toi ci-dessous.', false);
+      document.getElementById('zonePremierCompte').style.display='none';
+    } else {
+      msg(data.error || 'Erreur', true);
+    }
+  }catch(e){ msg('Serveur injoignable : '+e.message, true); }
+}
+
+async function connecter(){
+  const nom_utilisateur = document.getElementById('loginUser').value.trim();
+  const mot_de_passe = document.getElementById('loginPass').value;
+  try{
+    const res = await fetch(API+'/api/auth/login', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({nom_utilisateur, mot_de_passe})
+    });
+    const data = await res.json();
+    if(res.ok){
+      TOKEN = data.token;
+      msg('Connecté en tant que '+data.nom_utilisateur+' ('+data.role+')', false);
+      document.getElementById('zoneConnexion').style.display='none';
+      document.getElementById('zoneConnectee').style.display='block';
+      chargerComptes();
+    } else {
+      msg(data.error || 'Erreur de connexion', true);
+    }
+  }catch(e){ msg('Serveur injoignable : '+e.message, true); }
+}
+
+async function creerCompte(){
+  const nom_utilisateur = document.getElementById('nuUser').value.trim();
+  const mot_de_passe = document.getElementById('nuPass').value;
+  const role = document.getElementById('nuRole').value;
+  try{
+    const res = await fetch(API+'/api/utilisateurs', {
+      method:'POST', headers:{'Content-Type':'application/json', 'Authorization':'Bearer '+TOKEN},
+      body: JSON.stringify({nom_utilisateur, mot_de_passe, role})
+    });
+    const data = await res.json();
+    if(res.ok){
+      msg('Compte "'+data.nom_utilisateur+'" ('+data.role+') créé.', false);
+      document.getElementById('nuUser').value='';
+      document.getElementById('nuPass').value='';
+      chargerComptes();
+    } else {
+      msg(data.error || 'Erreur', true);
+    }
+  }catch(e){ msg('Serveur injoignable : '+e.message, true); }
+}
+
+async function chargerComptes(){
+  try{
+    const res = await fetch(API+'/api/utilisateurs', { headers:{'Authorization':'Bearer '+TOKEN} });
+    const data = await res.json();
+    if(res.ok){
+      document.getElementById('listeComptes').innerHTML = data.map(c=>
+        `<div class="compte">${c.nom_utilisateur} — ${c.role} ${c.actif?'':'(désactivé)'}</div>`
+      ).join('') || '<div class="compte">Aucun compte pour l\u2019instant.</div>';
+    }
+  }catch(e){}
+}
+</script>
+</body>
+</html>
