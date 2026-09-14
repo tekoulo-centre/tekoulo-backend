@@ -3,7 +3,7 @@ const router = express.Router();
 const pool = require('../db/pool');
 const { requireRole } = require('../middleware/auth');
 
-// GET /api/eleves?annee=2025-2026 — liste
+// GET /api/eleves?annee=2025-2026 — liste, source de vérité unique (P0-01)
 router.get('/', async (req, res) => {
   const { annee } = req.query;
   try {
@@ -21,9 +21,10 @@ router.get('/', async (req, res) => {
 });
 
 // POST /api/eleves — création
-router.post('/', requireRole('direction', 'secretariat'), async (req, res) => {
+router.post('/', requireRole('chef_etablissement', 'directeur_etudes', 'secretaire'), async (req, res) => {
   const { matricule, nom, prenom, sexe, classe_id, annee_scolaire } = req.body;
   try {
+    // Bloque l'écriture si l'année est clôturée (répond au "mode archive non verrouillé")
     const annee = await pool.query('SELECT statut FROM annees_scolaires WHERE code=$1', [annee_scolaire]);
     if (annee.rows[0] && annee.rows[0].statut !== 'active') {
       return res.status(423).json({ error: 'Année scolaire clôturée : lecture seule' });
@@ -46,8 +47,8 @@ router.post('/', requireRole('direction', 'secretariat'), async (req, res) => {
   }
 });
 
-// PUT /api/eleves/:id — modification avec détection de conflit par version
-router.put('/:id', requireRole('direction', 'secretariat'), async (req, res) => {
+// PUT /api/eleves/:id — modification avec détection de conflit par version (P0-03)
+router.put('/:id', requireRole('chef_etablissement', 'directeur_etudes', 'secretaire'), async (req, res) => {
   const { id } = req.params;
   const { version, ...champs } = req.body;
   try {
