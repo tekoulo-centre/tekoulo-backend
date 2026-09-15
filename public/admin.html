@@ -60,6 +60,12 @@
 
   <h2>Comptes existants</h2>
   <div id="listeComptes"></div>
+
+  <h2>Diagnostic : voir une collection sur le serveur</h2>
+  <small>Exemple de cle : programmeinfo__2025-2026 (remplace l'annee par celle active dans l'app)</small>
+  <input id="diagCle" placeholder="ex: programmeinfo__2025-2026">
+  <button onclick="verifierCollection()">Voir le contenu sur le serveur</button>
+  <pre id="diagResultat" style="white-space:pre-wrap;background:#1a1a22;padding:10px;border-radius:8px;font-size:0.75rem;max-height:300px;overflow:auto;"></pre>
 </div>
 
 <div id="messages"></div>
@@ -141,6 +147,18 @@ async function creerCompte(){
       msg(data.error || 'Erreur', true);
     }
   }catch(e){ msg('Serveur injoignable : '+e.message, true); }
+}
+
+async function verifierCollection(){
+  const cle = document.getElementById('diagCle').value.trim();
+  const d = document.getElementById('diagResultat');
+  try{
+    const res = await fetch(API+'/api/collections/'+encodeURIComponent(cle), {
+      headers: TOKEN ? {'Authorization':'Bearer '+TOKEN} : {}
+    });
+    const data = await res.json();
+    d.textContent = JSON.stringify(data, null, 2);
+  }catch(e){ d.textContent = 'Erreur : '+e.message; }
 }
 
 async function chargerComptes(){
