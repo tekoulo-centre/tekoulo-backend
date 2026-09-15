@@ -18,39 +18,45 @@
 </style>
 </head>
 <body>
-<h1>🏫 Tekoulo Centre — Administration</h1>
+<h1>Tekoulo Centre — Administration</h1>
 
-<div id="zonePremierCompte">
-  <h2>Créer le tout premier compte (une seule fois)</h2>
-  <small>Utilise le "SETUP_SECRET" visible dans Render → ton service → Environment.</small>
-  <input id="pcUser" placeholder="Identifiant (ex: chef1)">
-  <input id="pcPass" type="password" placeholder="Mot de passe (6+ caractères)">
-  <input id="pcSecret" placeholder="SETUP_SECRET (depuis Render)">
-  <button onclick="creerPremierCompte()">Créer le compte Chef d'établissement</button>
+<div id="zoneInitBase">
+  <h2>1. Initialiser la base de donnees (une seule fois)</h2>
+  <small>Cree les tables si elles n'existent pas encore. Sans danger a relancer.</small>
+  <input id="ibSecret" placeholder="SETUP_SECRET (depuis Render)">
+  <button onclick="initialiserBase()">Initialiser la base</button>
+</div>
+
+<div id="zoneReinit">
+  <h2>2. Depannage : creer/reinitialiser le compte chef d'etablissement</h2>
+  <input id="riUser" placeholder="Identifiant simple (ex: chef1)">
+  <input id="riPass" type="password" placeholder="Nouveau mot de passe (6+ caracteres)">
+  <input id="riSecret" placeholder="SETUP_SECRET (depuis Render)">
+  <button onclick="reinitialiserAdmin()">Creer / reinitialiser ce compte</button>
 </div>
 
 <div id="zoneConnexion">
-  <h2>Connexion</h2>
+  <h2>3. Connexion</h2>
   <input id="loginUser" placeholder="Identifiant">
   <input id="loginPass" type="password" placeholder="Mot de passe">
   <button onclick="connecter()">Se connecter</button>
 </div>
 
 <div id="zoneConnectee">
-  <h2>Créer un nouveau compte</h2>
+  <h2>Creer un nouveau compte</h2>
   <input id="nuUser" placeholder="Identifiant (ex: directeur1)">
-  <input id="nuPass" type="password" placeholder="Mot de passe (6+ caractères)">
+  <input id="nuPass" type="password" placeholder="Mot de passe (6+ caracteres)">
   <select id="nuRole">
-    <option value="chef_etablissement">Chef d'établissement</option>
-    <option value="directeur_etudes">Directeur des études</option>
+    <option value="chef_etablissement">Chef d'etablissement</option>
+    <option value="directeur_etudes">Directeur des etudes</option>
     <option value="comptable">Comptable</option>
-    <option value="charge_orientation">Chargé à l'orientation</option>
+    <option value="charge_orientation">Charge a l'orientation</option>
     <option value="enseignant">Enseignant</option>
-    <option value="secretaire">Secrétaire</option>
-    <option value="bibliothecaire">Bibliothécaire</option>
-    <option value="surveillant_general">Surveillant général</option>
+    <option value="secretaire">Secretaire</option>
+    <option value="bibliothecaire">Bibliothecaire</option>
+    <option value="surveillant_general">Surveillant general</option>
   </select>
-  <button onclick="creerCompte()">Créer ce compte</button>
+  <button onclick="creerCompte()">Creer ce compte</button>
 
   <h2>Comptes existants</h2>
   <div id="listeComptes"></div>
@@ -64,25 +70,34 @@ const API = window.location.origin;
 
 function msg(texte, estErreur){
   const d = document.getElementById('messages');
-  d.innerHTML = `<div class="msg ${estErreur?'err':'ok'}">${texte}</div>`;
+  d.innerHTML = '<div class="msg ' + (estErreur?'err':'ok') + '">' + texte + '</div>';
 }
 
-async function creerPremierCompte(){
-  const nom_utilisateur = document.getElementById('pcUser').value.trim();
-  const mot_de_passe = document.getElementById('pcPass').value;
-  const secret = document.getElementById('pcSecret').value.trim();
+async function initialiserBase(){
+  const secret = document.getElementById('ibSecret').value.trim();
   try{
-    const res = await fetch(API+'/api/setup/premier-compte', {
+    const res = await fetch(API+'/api/setup/initialiser-base', {
       method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({nom_utilisateur, mot_de_passe, secret})
+      body: JSON.stringify({secret:secret})
     });
     const data = await res.json();
-    if(res.ok){
-      msg('Compte "'+data.nom_utilisateur+'" créé ! Connecte-toi ci-dessous.', false);
-      document.getElementById('zonePremierCompte').style.display='none';
-    } else {
-      msg(data.error || 'Erreur', true);
-    }
+    if(res.ok){ msg('Base initialisee : ' + data.resultats.join(' | '), false); }
+    else { msg(data.error || 'Erreur', true); }
+  }catch(e){ msg('Serveur injoignable : '+e.message, true); }
+}
+
+async function reinitialiserAdmin(){
+  const nom_utilisateur = document.getElementById('riUser').value.trim();
+  const mot_de_passe = document.getElementById('riPass').value;
+  const secret = document.getElementById('riSecret').value.trim();
+  try{
+    const res = await fetch(API+'/api/setup/reinitialiser-admin', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({nom_utilisateur:nom_utilisateur, mot_de_passe:mot_de_passe, secret:secret})
+    });
+    const data = await res.json();
+    if(res.ok){ msg('Compte "' + data.nom_utilisateur + '" pret. Connecte-toi juste en dessous.', false); }
+    else { msg(data.error || 'Erreur', true); }
   }catch(e){ msg('Serveur injoignable : '+e.message, true); }
 }
 
@@ -92,12 +107,12 @@ async function connecter(){
   try{
     const res = await fetch(API+'/api/auth/login', {
       method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({nom_utilisateur, mot_de_passe})
+      body: JSON.stringify({nom_utilisateur:nom_utilisateur, mot_de_passe:mot_de_passe})
     });
     const data = await res.json();
     if(res.ok){
       TOKEN = data.token;
-      msg('Connecté en tant que '+data.nom_utilisateur+' ('+data.role+')', false);
+      msg('Connecte en tant que ' + data.nom_utilisateur + ' (' + data.role + ')', false);
       document.getElementById('zoneConnexion').style.display='none';
       document.getElementById('zoneConnectee').style.display='block';
       chargerComptes();
@@ -114,11 +129,11 @@ async function creerCompte(){
   try{
     const res = await fetch(API+'/api/utilisateurs', {
       method:'POST', headers:{'Content-Type':'application/json', 'Authorization':'Bearer '+TOKEN},
-      body: JSON.stringify({nom_utilisateur, mot_de_passe, role})
+      body: JSON.stringify({nom_utilisateur:nom_utilisateur, mot_de_passe:mot_de_passe, role:role})
     });
     const data = await res.json();
     if(res.ok){
-      msg('Compte "'+data.nom_utilisateur+'" ('+data.role+') créé.', false);
+      msg('Compte "' + data.nom_utilisateur + '" (' + data.role + ') cree.', false);
       document.getElementById('nuUser').value='';
       document.getElementById('nuPass').value='';
       chargerComptes();
@@ -133,9 +148,12 @@ async function chargerComptes(){
     const res = await fetch(API+'/api/utilisateurs', { headers:{'Authorization':'Bearer '+TOKEN} });
     const data = await res.json();
     if(res.ok){
-      document.getElementById('listeComptes').innerHTML = data.map(c=>
-        `<div class="compte">${c.nom_utilisateur} — ${c.role} ${c.actif?'':'(désactivé)'}</div>`
-      ).join('') || '<div class="compte">Aucun compte pour l\u2019instant.</div>';
+      let html = '';
+      for(let i=0;i<data.length;i++){
+        const c = data[i];
+        html += '<div class="compte">' + c.nom_utilisateur + ' — ' + c.role + (c.actif?'':' (desactive)') + '</div>';
+      }
+      document.getElementById('listeComptes').innerHTML = html || '<div class="compte">Aucun compte pour l\'instant.</div>';
     }
   }catch(e){}
 }
