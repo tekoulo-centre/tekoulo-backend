@@ -77,3 +77,5 @@ CREATE TABLE IF NOT EXISTS audit_log (
 CREATE INDEX IF NOT EXISTS idx_eleves_annee ON eleves(annee_scolaire);
 CREATE INDEX IF NOT EXISTS idx_frais_eleve ON frais_scolarite(eleve_id);
 CREATE INDEX IF NOT EXISTS idx_paiements_frais ON paiements(frais_id);
+ALTER TABLE utilisateurs DROP CONSTRAINT IF EXISTS utilisateurs_role_check;
+ALTER TABLE utilisateurs ADD CONSTRAINT utilisateurs_role_check CHECK (role IN ('chef_etablissement','directeur_etudes','comptable','charge_orientation','enseignant','secretaire','bibliothecaire','surveillant_general'));
