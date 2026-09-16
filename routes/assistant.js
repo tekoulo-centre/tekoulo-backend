@@ -5,6 +5,8 @@ const router = express.Router();
 // aide à rédiger des documents). Utilise l'API gratuite Google Gemini.
 // NÉCESSITE la variable d'environnement GEMINI_API_KEY (clé gratuite à créer sur
 // https://aistudio.google.com/apikey — aucune carte bancaire requise pour le niveau gratuit).
+// Depuis 2026, Google émet des clés au nouveau format "AQ." qui doivent être envoyées
+// dans l'en-tête HTTP x-goog-api-key (et non plus en paramètre ?key= dans l'URL).
 //
 // Limite honnête : le niveau gratuit de Gemini impose un nombre de requêtes par minute limité
 // (variable selon Google, généralement autour de 15/minute pour le modèle "flash"). Au-delà,
@@ -30,10 +32,13 @@ router.post('/chat', async (req, res) => {
     }
     contents.push({ role: 'user', parts: [{ text: message }] });
 
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${process.env.GEMINI_API_KEY}`;
+    const url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent';
     const reponse = await fetch(url, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'x-goog-api-key': process.env.GEMINI_API_KEY
+      },
       body: JSON.stringify({
         contents,
         systemInstruction: {
@@ -60,4 +65,3 @@ router.post('/chat', async (req, res) => {
 });
 
 module.exports = router;
-
