@@ -1,6 +1,12 @@
 const express = require('express');
 const router = express.Router();
 
+// POST /api/assistant/chat — assistant IA généraliste, via l'API gratuite Groq.
+// NÉCESSITE la variable d'environnement GROQ_API_KEY (clé gratuite sur https://console.groq.com/keys
+// — inscription par email, aucune carte bancaire requise).
+//
+// Limite honnête : le niveau gratuit Groq impose un nombre de requêtes/minute et de jetons/jour
+// limité (généreux pour un usage scolaire normal). Au-delà, l'IA renverra une erreur temporaire.
 router.post('/chat', async (req, res) => {
   const { message, historique } = req.body;
   if (!message || typeof message !== 'string') {
@@ -33,7 +39,7 @@ router.post('/chat', async (req, res) => {
         'Authorization': 'Bearer ' + process.env.GROQ_API_KEY,
       },
       body: JSON.stringify({
-        model: 'llama-3.3-70b-versatile',
+        model: 'openai/gpt-oss-120b',
         messages,
         temperature: 0.5,
       }),
