@@ -90,6 +90,24 @@ Points à clarifier ou informations manquantes :
 Reformule pour la clarté, mais ne complète jamais un chiffre, un nom ou une décision qui n'est pas
 explicitement dans les notes fournies.`,
 
+  cours: INSTRUCTION_BASE + `
+Tâche : préparer un COURS structuré et pédagogique, adapté au niveau de classe indiqué par
+l'utilisateur (matière, niveau, sujet précis). Structure ta réponse avec des titres (#, ##),
+des explications progressives du simple au complexe, et des exemples concrets adaptés au
+contexte guinéen quand c'est pertinent.
+
+Si le sujet nécessite des formules mathématiques, écris-les entre signes dollar :
+$formule$ pour une formule dans le texte, ou $$formule$$ pour une formule mise en avant,
+en utilisant la syntaxe LaTeX standard (exemple : $a^2 + b^2 = c^2$).
+
+Si un schéma simple aiderait à comprendre (figure géométrique, axe, diagramme), dessine-le
+en SVG basique et complet, à l'intérieur d'un bloc de code commençant par trois backticks
+suivis du mot svg, puis trois backticks pour fermer. N'utilise le SVG que pour des schémas
+réellement utiles et simples — pas pour illustrer une notion qui s'explique bien par le texte
+seul.
+
+Termine si pertinent par quelques questions ou exercices courts pour vérifier la compréhension.`,
+
   general: INSTRUCTION_BASE + `
 Tu aides le personnel (direction, secrétariat, comptabilité, enseignants, bibliothécaire,
 surveillant général...) pour toute question : administration scolaire, rédaction, explications,
